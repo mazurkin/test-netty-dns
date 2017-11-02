@@ -22,9 +22,9 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
@@ -46,7 +46,7 @@ public class DnsTest {
 
     private static final int THREADS = 1;
 
-    private static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(180);
+    private static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(10);
 
     private static final int MAX_QUERIES = 20;
 
@@ -97,7 +97,7 @@ public class DnsTest {
 
     @Test
     public void testAsyncDns() throws Exception {
-        BlockingQueue<DnsResult> queue = new ArrayBlockingQueue<>(domains.size());
+        BlockingQueue<DnsResult> queue = new LinkedBlockingDeque<>();
 
         // int count = domains.size();
 
