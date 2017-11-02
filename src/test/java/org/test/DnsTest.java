@@ -33,20 +33,20 @@ public class DnsTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(DnsTest.class);
 
     // GOOGLE public DNS
-    // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("8.8.8.8", 53);
+    private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("8.8.8.8", 53);
 
     // my private DNS
     // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("10.201.50.60", 53);
 
     // UBUNTU local DNS relay
-    private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.1.1", 53);
+    // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.1.1", 53);
 
     // UBUNTU local PDNSD relay
     // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.0.1", 1053);
 
     private static final int THREADS = 1;
 
-    private static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(15);
+    private static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(180);
 
     private static final int MAX_QUERIES = 20;
 
