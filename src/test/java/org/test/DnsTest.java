@@ -33,20 +33,20 @@ public class DnsTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(DnsTest.class);
 
     // GOOGLE public DNS
-    private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("8.8.8.8", 53);
+    // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("8.8.8.8", 53);
 
     // my private DNS
     // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("10.201.50.60", 53);
 
     // UBUNTU local DNS relay
-    // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.1.1", 53);
+    private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.1.1", 53);
 
     // UBUNTU local PDNSD relay
     // private static final InetSocketAddress DNS_ADDRESS = new InetSocketAddress("127.0.0.1", 1053);
 
     private static final int THREADS = 1;
 
-    private static final long TIMEOUT_MS = TimeUnit.MINUTES.toMillis(3);
+    private static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(15);
 
     private static final int MAX_QUERIES = 20;
 
@@ -77,9 +77,6 @@ public class DnsTest {
         resolver = new DnsNameResolverBuilder(group.next())
                 .channelType(NioDatagramChannel.class)
                 .queryTimeoutMillis(TIMEOUT_MS)
-                .recursionDesired(false)
-                .optResourceEnabled(false)
-                .decodeIdn(true)
                 .maxQueriesPerResolve(MAX_QUERIES)
                 .maxPayloadSize(MAX_PAYLOAD)
                 .resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY)
@@ -104,7 +101,7 @@ public class DnsTest {
 
         // int count = domains.size();
 
-        int count = 50;
+        int count = 100;
         LOGGER.debug("Started resolving {} domains", count);
 
         // Schedule async DNS resolves
@@ -120,7 +117,7 @@ public class DnsTest {
                     result.message = address.getHostAddress();
                 } else {
                     result.resolved = false;
-                    result.message = ex.getLocalizedMessage();
+                    result.message = ex.getClass().getCanonicalName() + " / " + ex.getLocalizedMessage();
 
                     LOGGER.trace("Exception on DNS resolving", ex);
                 }
@@ -222,7 +219,7 @@ public class DnsTest {
             } else if (!future.isCancelled()) {
                 result.completeExceptionally(future.cause());
             } else {
-                LOGGER.warn("Looks like the feature is canceled");
+                result.completeExceptionally(new IllegalStateException("Looks like the feature is canceled"));
             }
         });
 
