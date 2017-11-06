@@ -8,6 +8,7 @@
     </appender>
 
     <logger name="org.test" level="DEBUG"/>
+    <logger name="io.netty.resolver.dns" level="WARN"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

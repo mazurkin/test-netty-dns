@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.netty>4.1.16.Final</version.netty>
         <version.netty-dns>4.1.16.Final</version.netty-dns>
+        <version.netty-tcnative>2.0.6.Final</version.netty-tcnative>
         <version.junit>4.12</version.junit>
         <version.logback>1.2.3</version.logback>
         <version.slf4j>1.7.25</version.slf4j>
@@ -24,7 +25,6 @@
     </properties>
 
     <dependencies>
-        <!-- -->
         <!-- netty -->
         <dependency>
             <groupId>io.netty</groupId>
@@ -50,6 +50,28 @@
             <version>${version.netty-dns}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-epoll</artifactId>
+            <version>${version.netty}</version>
+            <classifier>linux-x86_64</classifier>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <version>${version.netty-tcnative}</version>
+            <classifier>linux-x86_64</classifier>
+            <scope>compile</scope>
+        </dependency>
+        <!-- dnsjava -->
+        <dependency>
+            <groupId>dnsjava</groupId>
+            <artifactId>dnsjava</artifactId>
+            <version>2.1.8</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- misc -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
