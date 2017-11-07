@@ -55,13 +55,13 @@ public class DnsTest {
 
     private static final int NETTY_POOL_THREADS = 1;
 
-    private static final int TIMEOUT_SEC = 60;
+    private static final int TIMEOUT_SEC = 20;
 
     private static final int MAX_QUERIES = 20;
 
     private static final int MAX_PAYLOAD = 64 * 1024;
 
-    private static final int DOMAIN_COUNT = 500;
+    private static final int DOMAIN_COUNT = 300;
 
     private static final int CONCURRENCY = 100;
 
