@@ -21,14 +21,14 @@ public class CLibTest {
 
     @Test
     public void testResolveKnown() throws Exception {
-        InetAddress[] addresses = CLibAdapter.resolve("google.com");
+        InetAddress[] addresses = CLibAdapter.resolve1("google.com");
         Assert.assertNotNull(addresses);
         Assert.assertTrue(addresses.length > 0);
     }
 
     @Test(expected = UnknownHostException.class)
     public void testResolveUnknown() throws Exception {
-        CLibAdapter.resolve("google3-rwgwrgwr.com");
+        CLibAdapter.resolve1("google3-rwgwrgwr.com");
     }
 
     @Test
@@ -41,5 +41,19 @@ public class CLibTest {
     @Test(expected = UnknownHostException.class)
     public void testResolveUnknown2() throws Exception {
         CLibAdapter.resolve2("google3-rwgwrgwr.com");
+    }
+
+    @Test
+    public void test2() throws Exception {
+        InetAddress[] addresses = CLibAdapter.resolve2("letsbytecode.com");
+        Assert.assertNotNull(addresses);
+        Assert.assertTrue(addresses.length > 0);
+    }
+
+    @Test
+    public void test3() throws Exception {
+        InetAddress[] addresses = CLibAdapter.resolve2("54.77.84.201");
+        Assert.assertNotNull(addresses);
+        Assert.assertTrue(addresses.length > 0);
     }
 }

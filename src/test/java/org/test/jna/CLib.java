@@ -43,39 +43,41 @@ public interface CLib extends Library {
         public String getName() {
             if (name != Pointer.NULL) {
                 return name.getString(0);
-            } else {
-                return null;
             }
+
+            return null;
         }
 
         public String[] getAliases() {
             if (aliases != Pointer.NULL) {
                 return aliases.getStringArray(0);
-            } else {
-                return null;
             }
+
+            return null;
         }
 
         public byte[][] getAddresses() {
             if (addresses != Pointer.NULL) {
                 Pointer[] pointers = addresses.getPointerArray(0);
-                byte[][] result = new byte[pointers.length][];
+                if (pointers.length > 0) {
+                    byte[][] result = new byte[pointers.length][];
 
-                for (int i = 0; i < pointers.length; i++) {
-                    result[i] = pointers[i].getByteArray(0, length);
+                    for (int i = 0; i < pointers.length; i++) {
+                        result[i] = pointers[i].getByteArray(0, length);
+                    }
+
+                    return result;
                 }
-
-                return result;
-            } else {
-                return null;
             }
+
+            return null;
         }
 
     }
 
     Hostent gethostbyname(String name);
 
-    int gethostbyname_r(String name, Hostent ret, byte[] buf, NativeLong buflen,
+    int gethostbyname_r(String name, Hostent ret, Pointer buf, NativeLong buflen,
                         PointerByReference result, IntByReference h_errnop);
 
 }

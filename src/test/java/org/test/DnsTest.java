@@ -66,9 +66,9 @@ public class DnsTest {
 
     private static final int MAX_PAYLOAD = 64 * 1024;
 
-    private static final int DOMAIN_COUNT = 300;
+    private static final int DOMAIN_COUNT = 1000;
 
-    private static final int CONCURRENCY = 100;
+    private static final int CONCURRENCY = 64;
 
     private static List<String> domains;
 
@@ -128,7 +128,7 @@ public class DnsTest {
     }
 
     @Test
-    public void testAsyncNettyDns() throws Exception {
+    public void testAsyncRemoteDnsNetty() throws Exception {
         LOGGER.info("Started resolving {} domains", DOMAIN_COUNT);
 
         BlockingQueue<DnsResult> queue = new LinkedBlockingDeque<>();
@@ -201,14 +201,12 @@ public class DnsTest {
         resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncDirect);
     }
 
-    @Ignore
     @Test
-    public void testSyncDnsJna() throws Exception {
+    public void testSyncDnsJna1() throws Exception {
         Assume.assumeTrue(Platform.isLinux());
-        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna);
+        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna1);
     }
 
-    @Ignore
     @Test
     public void testSyncDnsJna2() throws Exception {
         Assume.assumeTrue(Platform.isLinux());
@@ -216,12 +214,12 @@ public class DnsTest {
     }
 
     @Test
-    public void testSyncDnsJavaLibTcp() throws Exception {
+    public void testSyncRemoteDnsJavaLibTcp() throws Exception {
         resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, tcpResolver));
     }
 
     @Test
-    public void testSyncDnsJavaLibUdp() throws Exception {
+    public void testSyncRemoteDnsJavaLibUdp() throws Exception {
         resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, udpResolver));
     }
 
@@ -285,10 +283,10 @@ public class DnsTest {
         }
     }
 
-    private static InetAddress resolveSystemSyncJna(String domain) {
+    private static InetAddress resolveSystemSyncJna1(String domain) {
         // Uses JVM/system DNS resolver (no caching, no sync)
         try {
-            InetAddress[] addresses = CLibAdapter.resolve(domain);
+            InetAddress[] addresses = CLibAdapter.resolve1(domain);
             return addresses[0];
         } catch (UnknownHostException e) {
             return null;
