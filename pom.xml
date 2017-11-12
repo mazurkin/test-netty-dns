@@ -22,6 +22,7 @@
         <version.logback>1.2.3</version.logback>
         <version.slf4j>1.7.25</version.slf4j>
         <version.commons-io>2.6</version.commons-io>
+        <version.jna>4.5.0</version.jna>
     </properties>
 
     <dependencies>
@@ -62,6 +63,19 @@
             <artifactId>netty-tcnative-boringssl-static</artifactId>
             <version>${version.netty-tcnative}</version>
             <classifier>linux-x86_64</classifier>
+            <scope>compile</scope>
+        </dependency>
+        <!-- jna -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${version.jna}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>${version.jna}</version>
             <scope>compile</scope>
         </dependency>
         <!-- dnsjava -->

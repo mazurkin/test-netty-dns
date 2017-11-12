@@ -1,5 +1,6 @@
 package org.test;
 
+import com.sun.jna.Platform;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -10,12 +11,15 @@ import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.test.jna.CLibAdapter;
+import org.test.direct.NameServices;
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
@@ -50,7 +54,7 @@ public class DnsTest {
 
     private static final InetSocketAddress DNS_ADDRESS_LOCAL_UBUNTU = new InetSocketAddress("127.0.1.1", 53);
 
-    private static final InetSocketAddress DNS_ADDRESS_LOCAL_PDNSD = new InetSocketAddress("127.0.0.1", 1053);
+    private static final InetSocketAddress DNS_ADDRESS_LOCAL_PDNSD = new InetSocketAddress("127.0.0.1", 10053);
 
     private static final InetSocketAddress DNS_ADDRESS = DNS_ADDRESS_LOCAL_UBUNTU;
 
@@ -124,7 +128,7 @@ public class DnsTest {
     }
 
     @Test
-    public void testAsyncDns() throws Exception {
+    public void testAsyncNettyDns() throws Exception {
         LOGGER.info("Started resolving {} domains", DOMAIN_COUNT);
 
         BlockingQueue<DnsResult> queue = new LinkedBlockingDeque<>();
@@ -135,7 +139,7 @@ public class DnsTest {
         for (String domain : domains.subList(0, DOMAIN_COUNT)) {
             semaphore.acquire();
 
-            CompletableFuture<InetAddress> future = resolveNettyAsync(domain);
+            CompletableFuture<InetAddress> future = resolveNettyAsync(domain, nettyResolver);
 
             future.whenComplete((address, ex) -> {
                 semaphore.release();
@@ -189,25 +193,41 @@ public class DnsTest {
 
     @Test
     public void testSyncDns() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, domain ->
-                resolveSystemSync(domain));
+        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSync);
+    }
+
+    @Test
+    public void testSyncDnsDirect() throws Exception {
+        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncDirect);
+    }
+
+    @Ignore
+    @Test
+    public void testSyncDnsJna() throws Exception {
+        Assume.assumeTrue(Platform.isLinux());
+        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna);
+    }
+
+    @Ignore
+    @Test
+    public void testSyncDnsJna2() throws Exception {
+        Assume.assumeTrue(Platform.isLinux());
+        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna2);
     }
 
     @Test
     public void testSyncDnsJavaLibTcp() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, domain ->
-                resolveSimpleSync(domain, tcpResolver));
+        resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, tcpResolver));
     }
 
     @Test
     public void testSyncDnsJavaLibUdp() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, domain ->
-                resolveSimpleSync(domain, udpResolver));
+        resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, udpResolver));
     }
 
     @Ignore("run `src/test/resources/crawler_domains-adnshost.sh`")
     @Test
-    public void testADnsHost() throws Exception {
+    public void testADnsHostCommand() throws Exception {
         // 
     }
 
@@ -238,11 +258,11 @@ public class DnsTest {
         LOGGER.info("Succeed {} domains", succeed.get());
     }
 
-    private CompletableFuture<InetAddress> resolveNettyAsync(String domain) {
+    private static CompletableFuture<InetAddress> resolveNettyAsync(String domain, DnsNameResolver nettyResolver) {
         return future(nettyResolver.resolve(domain));
     }
-    
-    private InetAddress resolveSystemSync(String domain) {
+
+    private static InetAddress resolveSystemSync(String domain) {
         // Uses JVM/system DNS resolver
         try {
             return InetAddress.getByName(domain);
@@ -251,7 +271,41 @@ public class DnsTest {
         }
     }
 
-    private InetAddress resolveSimpleSync(String domain, Resolver resolver) {
+    private static InetAddress resolveSystemSyncDirect(String domain) {
+        // Uses JVM/system DNS resolver (no caching, no sync)
+        try {
+            InetAddress[] addresses = NameServices.resolve(domain);
+            if (addresses != null && addresses.length > 0) {
+                return addresses[0];
+            } else {
+                return null;
+            }
+        } catch (UnknownHostException e) {
+            return null;
+        }
+    }
+
+    private static InetAddress resolveSystemSyncJna(String domain) {
+        // Uses JVM/system DNS resolver (no caching, no sync)
+        try {
+            InetAddress[] addresses = CLibAdapter.resolve(domain);
+            return addresses[0];
+        } catch (UnknownHostException e) {
+            return null;
+        }
+    }
+
+    private static InetAddress resolveSystemSyncJna2(String domain) {
+        // Uses JVM/system DNS resolver (no caching, no sync)
+        try {
+            InetAddress[] addresses = CLibAdapter.resolve2(domain);
+            return addresses[0];
+        } catch (UnknownHostException e) {
+            return null;
+        }
+    }
+
+    private static InetAddress resolveSimpleSync(String domain, Resolver resolver) {
         Lookup lookup;
         try {
             lookup = new Lookup(domain);
@@ -295,7 +349,7 @@ public class DnsTest {
         private String message;
 
         private boolean resolved;
-        
+
     }
 
 
