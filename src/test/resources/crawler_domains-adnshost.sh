@@ -9,7 +9,7 @@ RESOLV_SERVERS="nameserver 8.8.8.8; nameserver 8.8.4.4; nameserver 84.200.69.80;
 RESOLV_OPTIONS="options timeout:600; options attempts:30; options no-check-names; options rotate"
 
 time zcat crawler_domains.txt.gz \
-    | head -n 300 \
+    | head -n 1000 \
     | adnshost --fmt-asynch --asynch --cname-ok --type a ----addr-ipv4-only --config "${RESOLV_OPTIONS}; ${RESOLV_SERVERS}" --pipe --ttl-abs \
     | grep '$ "OK"' \
     | wc -l
