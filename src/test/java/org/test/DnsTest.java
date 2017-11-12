@@ -12,6 +12,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,6 +203,12 @@ public class DnsTest {
     public void testSyncDnsJavaLibUdp() throws Exception {
         resolveDnsSync(DOMAIN_COUNT, domain ->
                 resolveSimpleSync(domain, udpResolver));
+    }
+
+    @Ignore("run `src/test/resources/crawler_domains-adnshost.sh`")
+    @Test
+    public void testADnsHost() throws Exception {
+        // 
     }
 
     private void resolveDnsSync(int count, Function<String, InetAddress> resolver) throws InterruptedException {
