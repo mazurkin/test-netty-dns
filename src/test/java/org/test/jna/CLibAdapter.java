@@ -30,8 +30,6 @@ public class CLibAdapter {
 
     public static InetAddress[] resolve2(String host) throws UnknownHostException {
         CLib.Hostent template = new CLib.Hostent();
-        template.write();
-
         PointerByReference result = new PointerByReference();
         IntByReference errCode = new IntByReference(-1);
 
@@ -39,7 +37,8 @@ public class CLibAdapter {
         try {
             // gethostbyname_r is thread safe
             // http://man7.org/linux/man-pages/man3/gethostbyname.3.html
-            int r = CLib.INSTANCE.gethostbyname_r(host, template, new Pointer(buffer), new NativeLong(RESOLVE_BUFFER), result, errCode);
+            int r = CLib.INSTANCE.gethostbyname_r(host, template,
+                    new Pointer(buffer), new NativeLong(RESOLVE_BUFFER), result, errCode);
             if (r != 0) {
                 throw new UnknownHostException("Can't resolve " + host + " - return code is " + r);
             }
