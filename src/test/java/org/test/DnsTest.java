@@ -72,13 +72,13 @@ public class DnsTest {
 
     private static List<String> domains;
 
+    private EventLoopGroup nettyGroup;
+
     private DnsNameResolver nettyResolver;
 
-    private SimpleResolver tcpResolver;
+    private SimpleResolver dnsJavaTcpResolver;
 
-    private SimpleResolver udpResolver;
-
-    private EventLoopGroup group;
+    private SimpleResolver dnsJavaUdpResolver;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -91,12 +91,12 @@ public class DnsTest {
 
     @Before
     public void setUp() throws Exception {
-        group = new EpollEventLoopGroup(NETTY_POOL_THREADS, new DefaultThreadFactory("DNS pool"));
+        nettyGroup = new EpollEventLoopGroup(NETTY_POOL_THREADS, new DefaultThreadFactory("DNS pool"));
 
         SingletonDnsServerAddressStreamProvider dnsServerProvider =
                 new SingletonDnsServerAddressStreamProvider(DNS_ADDRESS);
 
-        nettyResolver = new DnsNameResolverBuilder(group.next())
+        nettyResolver = new DnsNameResolverBuilder(nettyGroup.next())
                 .channelType(EpollDatagramChannel.class)
                 .queryTimeoutMillis(TimeUnit.SECONDS.toMillis(TIMEOUT_SEC))
                 .maxQueriesPerResolve(MAX_QUERIES)
@@ -105,21 +105,21 @@ public class DnsTest {
                 .nameServerProvider(dnsServerProvider)
                 .build();
 
-        tcpResolver = new SimpleResolver();
-        tcpResolver.setAddress(DNS_ADDRESS);
-        tcpResolver.setTimeout(TIMEOUT_SEC);
-        tcpResolver.setTCP(true);
+        dnsJavaTcpResolver = new SimpleResolver();
+        dnsJavaTcpResolver.setAddress(DNS_ADDRESS);
+        dnsJavaTcpResolver.setTimeout(TIMEOUT_SEC);
+        dnsJavaTcpResolver.setTCP(true);
 
-        udpResolver = new SimpleResolver();
-        udpResolver.setAddress(DNS_ADDRESS);
-        udpResolver.setTimeout(TIMEOUT_SEC);
-        udpResolver.setTCP(false);
+        dnsJavaUdpResolver = new SimpleResolver();
+        dnsJavaUdpResolver.setAddress(DNS_ADDRESS);
+        dnsJavaUdpResolver.setTimeout(TIMEOUT_SEC);
+        dnsJavaUdpResolver.setTCP(false);
     }
 
     @After
     public void tearDown() throws Exception {
-        if (group != null) {
-            group.shutdownGracefully().sync();
+        if (nettyGroup != null) {
+            nettyGroup.shutdownGracefully().sync();
         }
 
         if (nettyResolver != null) {
@@ -128,7 +128,80 @@ public class DnsTest {
     }
 
     @Test
-    public void testAsyncRemoteDnsNetty() throws Exception {
+    public void remoteNettyAsyncDns() throws Exception {
+        resolveDnsAsync(domain -> resolveNettyAsync(domain, nettyResolver));
+    }
+
+    @Test
+    public void systemJavaSyncDns() throws Exception {
+        resolveDnsSync(DnsTest::resolveSystemSync);
+    }
+
+    @Test
+    public void systemDirectSyncDns() throws Exception {
+        resolveDnsSync(DnsTest::resolveSystemSyncDirect);
+    }
+
+    @Test
+    public void systemJnaSyncDns1() throws Exception {
+        Assume.assumeTrue(Platform.isLinux());
+        resolveDnsSync(DnsTest::resolveSystemSyncJna1);
+    }
+
+    @Test
+    public void systemJnaSyncDns2() throws Exception {
+        Assume.assumeTrue(Platform.isLinux());
+        resolveDnsSync(DnsTest::resolveSystemSyncJna2);
+    }
+
+    @Test
+    public void remoteJavaLibTcpSyncDns() throws Exception {
+        resolveDnsSync(domain -> resolveSimpleSync(domain, dnsJavaTcpResolver));
+    }
+
+    @Test
+    public void remoteJavaLibUdpSyncDns() throws Exception {
+        resolveDnsSync(domain -> resolveSimpleSync(domain, dnsJavaUdpResolver));
+    }
+
+    @Ignore("run `src/test/resources/crawler_domains-adnshost.sh`")
+    @Test
+    public void systemADnsHostCommandDns() throws Exception {
+        // see the comment above
+    }
+
+    private static void resolveDnsSync(Function<String, InetAddress> resolver)
+            throws InterruptedException
+    {
+        LOGGER.info("Started resolving {} domains", DOMAIN_COUNT);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(CONCURRENCY);
+
+        AtomicInteger succeed = new AtomicInteger(0);
+
+        for (String domain : domains.subList(0, DOMAIN_COUNT)) {
+            executorService.submit(() -> {
+                InetAddress address = resolver.apply(domain);
+                if (address != null) {
+                    succeed.incrementAndGet();
+                    LOGGER.trace("{} = [{}]", domain, address.getHostAddress());
+                } else {
+                    LOGGER.trace("{} = NONE", domain);
+                }
+
+                return true;
+            });
+        }
+
+        executorService.shutdown();
+        executorService.awaitTermination(30, TimeUnit.MINUTES);
+
+        LOGGER.info("Succeed {} domains", succeed.get());
+    }
+
+    private static void resolveDnsAsync(Function<String, CompletableFuture<InetAddress>> resolver)
+            throws InterruptedException
+    {
         LOGGER.info("Started resolving {} domains", DOMAIN_COUNT);
 
         BlockingQueue<DnsResult> queue = new LinkedBlockingDeque<>();
@@ -139,7 +212,7 @@ public class DnsTest {
         for (String domain : domains.subList(0, DOMAIN_COUNT)) {
             semaphore.acquire();
 
-            CompletableFuture<InetAddress> future = resolveNettyAsync(domain, nettyResolver);
+            CompletableFuture<InetAddress> future = resolver.apply(domain);
 
             future.whenComplete((address, ex) -> {
                 semaphore.release();
@@ -161,7 +234,7 @@ public class DnsTest {
 
         LOGGER.info("All requests are published");
 
-        // Wait pending results
+        // Wait pending results and check
         int fn = 0;
         int tn = 0;
         int p  = 0;
@@ -189,71 +262,6 @@ public class DnsTest {
         LOGGER.info("False negatives : {}", fn);
         LOGGER.info("True negatives  : {}", tn);
         LOGGER.info("Succeed         : {}", p);
-    }
-
-    @Test
-    public void testSyncDns() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSync);
-    }
-
-    @Test
-    public void testSyncDnsDirect() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncDirect);
-    }
-
-    @Test
-    public void testSyncDnsJna1() throws Exception {
-        Assume.assumeTrue(Platform.isLinux());
-        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna1);
-    }
-
-    @Test
-    public void testSyncDnsJna2() throws Exception {
-        Assume.assumeTrue(Platform.isLinux());
-        resolveDnsSync(DOMAIN_COUNT, DnsTest::resolveSystemSyncJna2);
-    }
-
-    @Test
-    public void testSyncRemoteDnsJavaLibTcp() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, tcpResolver));
-    }
-
-    @Test
-    public void testSyncRemoteDnsJavaLibUdp() throws Exception {
-        resolveDnsSync(DOMAIN_COUNT, domain -> resolveSimpleSync(domain, udpResolver));
-    }
-
-    @Ignore("run `src/test/resources/crawler_domains-adnshost.sh`")
-    @Test
-    public void testADnsHostCommand() throws Exception {
-        // 
-    }
-
-    private void resolveDnsSync(int count, Function<String, InetAddress> resolver) throws InterruptedException {
-        LOGGER.info("Started resolving {} domains", count);
-
-        ExecutorService executorService = Executors.newFixedThreadPool(CONCURRENCY);
-
-        AtomicInteger succeed = new AtomicInteger(0);
-
-        for (String domain : domains.subList(0, count)) {
-            executorService.submit(() -> {
-                InetAddress address = resolver.apply(domain);
-                if (address != null) {
-                    succeed.incrementAndGet();
-                    LOGGER.trace("{} = [{}]", domain, address.getHostAddress());
-                } else {
-                    LOGGER.trace("{} = NONE", domain);
-                }
-
-                return true;
-            });
-        }
-
-        executorService.shutdown();
-        executorService.awaitTermination(30, TimeUnit.MINUTES);
-
-        LOGGER.info("Succeed {} domains", succeed.get());
     }
 
     private static CompletableFuture<InetAddress> resolveNettyAsync(String domain, DnsNameResolver nettyResolver) {
