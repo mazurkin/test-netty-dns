@@ -56,7 +56,7 @@ public class DnsTest {
 
     private static final InetSocketAddress DNS_ADDRESS_LOCAL_PDNSD = new InetSocketAddress("127.0.0.1", 10053);
 
-    private static final InetSocketAddress DNS_ADDRESS = DNS_ADDRESS_LOCAL_UBUNTU;
+    private static final InetSocketAddress DNS_ADDRESS = DNS_ADDRESS_GOOGLE_PUBLIC;
 
     private static final int NETTY_POOL_THREADS = 1;
 
